@@ -32,7 +32,7 @@ class TopologyHelper {
         // Ignore internal topics used to link sub-topologies together
         Set<String> internalTopics = new HashSet<String>(sourceTopics);
         internalTopics.retainAll(sinkTopics);
-        sourceTopics.addAll(sinkTopics);
+        //sourceTopics.addAll(sinkTopics);
         sourceTopics.removeAll(internalTopics);
         return sourceTopics;
     }

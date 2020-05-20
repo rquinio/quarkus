@@ -21,7 +21,7 @@ public class TopologyHelperTest {
 
         Set<String> topics = TopologyHelper.discoverStaticTopics(topology);
 
-        assertThat(topics).containsOnly("topic1", "topic2", "topic3");
+        assertThat(topics).containsOnly("topic1", "topic2");
     }
 
     @Test
@@ -56,6 +56,6 @@ public class TopologyHelperTest {
 
         Set<String> topics = TopologyHelper.discoverStaticTopics(builder.build());
 
-        assertThat(topics).containsOnly("topic1", "topic2", "topic3");
+        assertThat(topics).containsOnly("topic1", "topic2");
     }
 }

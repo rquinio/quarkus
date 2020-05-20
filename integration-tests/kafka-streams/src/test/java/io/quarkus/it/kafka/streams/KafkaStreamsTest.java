@@ -22,6 +22,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import io.debezium.kafka.KafkaCluster;
 import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerializer;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -61,15 +62,20 @@ public class KafkaStreamsTest {
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+        props.put(ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, false);
+
         KafkaConsumer<Integer, EnrichedCustomer> consumer = new KafkaConsumer<>(props);
         consumer.subscribe(Collections.singletonList("streams-test-customers-processed"));
         return consumer;
     }
 
+    private KafkaCluster kafka;
+
     @Test
     public void testKafkaStreams() throws Exception {
         testKafkaStreamsNotAliveAndNotReady();
 
+        //kafka.createTopics("streams-test-categories", "streams-test-customers");
         produceCustomers();
 
         Consumer<Integer, EnrichedCustomer> consumer = createConsumer();
@@ -114,7 +120,7 @@ public class KafkaStreamsTest {
         testKafkaStreamsAliveAndReady();
         RestAssured.when().get("/kafkastreams/state").then().body(CoreMatchers.is("RUNNING"));
 
-        // explicitly stopping the pipeline *before* the broker is shut down, as it
+        // explicitly stopping the pipeline *beforethe broker is shut down, as it
         // otherwise will time out
         RestAssured.post("/kafkastreams/stop");
     }
@@ -125,7 +131,7 @@ public class KafkaStreamsTest {
                 .body("checks[0].name", CoreMatchers.is("Kafka Streams topics health check"))
                 .body("checks[0].status", CoreMatchers.is("DOWN"))
                 .body("checks[0].data.missing_topics",
-                        CoreMatchers.is("streams-test-customers,streams-test-categories,streams-test-customers-processed"));
+                        CoreMatchers.is("streams-test-customers,streams-test-categories"));
 
         RestAssured.when().get("/health/live").then()
                 .statusCode(HttpStatus.SC_SERVICE_UNAVAILABLE)
@@ -143,7 +149,7 @@ public class KafkaStreamsTest {
                 .body("checks[0].name", CoreMatchers.is("Kafka Streams topics health check"))
                 .body("checks[0].status", CoreMatchers.is("UP"))
                 .body("checks[0].data.available_topics",
-                        CoreMatchers.is("streams-test-customers,streams-test-categories,streams-test-customers-processed"));
+                        CoreMatchers.is("streams-test-customers,streams-test-categories"));
 
         RestAssured.when().get("/health/live").then()
                 .statusCode(HttpStatus.SC_OK)
