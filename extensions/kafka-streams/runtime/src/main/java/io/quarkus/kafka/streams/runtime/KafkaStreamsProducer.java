@@ -1,6 +1,7 @@
 package io.quarkus.kafka.streams.runtime;
 
 import static io.quarkus.kafka.streams.runtime.KafkaStreamsRuntimeConfig.DEFAULT_KAFKA_BROKER;
+import static org.wildfly.common.net.HostName.getQualifiedHostName;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -207,9 +208,10 @@ public class KafkaStreamsProducer {
         streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, runtimeConfig.applicationId);
 
         // app id
-        if (runtimeConfig.applicationServer.isPresent()) {
-            streamsProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG, runtimeConfig.applicationServer.get());
-        }
+        String applicationServer = runtimeConfig.applicationServer.isPresent()
+                ? runtimeConfig.applicationServer.get()
+                : String.format("%s:%s", getQualifiedHostName(), getPort(runtimeConfig));
+        streamsProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG, applicationServer);
 
         // schema registry
         if (runtimeConfig.schemaRegistryUrl.isPresent()) {
@@ -267,6 +269,12 @@ public class KafkaStreamsProducer {
         }
 
         return streamsProperties;
+    }
+
+    private static String getPort(KafkaStreamsRuntimeConfig runtimeConfig) {
+        return runtimeConfig.ssl != null
+                ? ConfigProvider.getConfig().getOptionalValue("quarkus.http.sslPort", String.class).orElse("8443")
+                : ConfigProvider.getConfig().getOptionalValue("quarkus.http.port", String.class).orElse("8080");
     }
 
     private static void setStoreConfig(StoreConfig sc, Properties properties, String key) {
