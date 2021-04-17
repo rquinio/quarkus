@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -210,7 +211,7 @@ public class KafkaStreamsProducer {
         // app id
         String applicationServer = runtimeConfig.applicationServer.isPresent()
                 ? runtimeConfig.applicationServer.get()
-                : String.format("%s:%s", getQualifiedHostName(), getPort(runtimeConfig));
+                : String.format("%s:%s", getQualifiedHostName(), getHttpPort());
         streamsProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG, applicationServer);
 
         // schema registry
@@ -271,10 +272,16 @@ public class KafkaStreamsProducer {
         return streamsProperties;
     }
 
-    private static String getPort(KafkaStreamsRuntimeConfig runtimeConfig) {
-        return runtimeConfig.ssl != null
-                ? ConfigProvider.getConfig().getOptionalValue("quarkus.http.sslPort", String.class).orElse("8443")
-                : ConfigProvider.getConfig().getOptionalValue("quarkus.http.port", String.class).orElse("8080");
+    private static String getHttpPort() {
+        boolean secure = false;
+        Optional<String> insecureAllowed = ConfigProvider.getConfig().getOptionalValue("quarkus.http.insecure-requests",
+                String.class);
+        if (insecureAllowed.isPresent()) {
+            secure = !insecureAllowed.get().toLowerCase(Locale.ENGLISH).equals("enabled");
+        }
+        return secure
+                ? ConfigProvider.getConfig().getValue("quarkus.http.ssl-port", String.class)
+                : ConfigProvider.getConfig().getValue("quarkus.http.port", String.class);
     }
 
     private static void setStoreConfig(StoreConfig sc, Properties properties, String key) {
